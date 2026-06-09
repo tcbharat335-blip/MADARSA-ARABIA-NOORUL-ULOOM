@@ -10,7 +10,7 @@ service cloud.firestore {
     // Making write restricted to Admin (User's email).
     function isAdmin() { 
       return request.auth != null && 
-             (request.auth.token.email == "dkbmedia786@gmail.com" || request.auth.token.email == "tcbharat335@gmail.com"); 
+             request.auth.token.email == "tcbharat335@gmail.com";
     }
 
     match /students/{studentId} {

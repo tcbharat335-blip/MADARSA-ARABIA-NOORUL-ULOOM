@@ -1,9 +1,9 @@
 {
-  "projectId": "remixed-project-id",
-  "appId": "remixed-app-id",
-  "apiKey": "remixed-api-key",
-  "authDomain": "remixed-auth-domain",
-  "storageBucket": "remixed-storage-bucket",
-  "messagingSenderId": "remixed-messaging-sender-id",
-  "measurementId": "remixed-measurement-id"
+  "apiKey": "AIzaSyB8U16YLIEHcCxhYNS24TMf2fnwgz0N2_I",
+  "authDomain": "madrsa-aeabia-karma-khan.firebaseapp.com",
+  "projectId": "madrsa-aeabia-karma-khan",
+  "storageBucket": "madrsa-aeabia-karma-khan.firebasestorage.app",
+  "messagingSenderId": "17043712782",
+  "appId": "1:17043712782:web:47b166cd3598dc89e2c55f",
+  "measurementId": "G-55K5C1H5GD"
 }

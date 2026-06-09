@@ -543,7 +543,7 @@ export default function PrincipalDashboard({
       provider.addScope('https://www.googleapis.com/auth/spreadsheets');
       provider.addScope('https://www.googleapis.com/auth/drive.file');
       const result = await signInWithPopup(auth, provider);
-      if (result.user && (result.user.email === 'dkbmedia786@gmail.com' || result.user.email === 'tcbharat335@gmail.com')) {
+      if (result.user && result.user.email === 'tcbharat335@gmail.com') {
          const credential = GoogleAuthProvider.credentialFromResult(result);
          if (credential && credential.accessToken) {
            setCachedAccessToken(credential.accessToken);
@@ -1594,7 +1594,7 @@ export default function PrincipalDashboard({
           {/* Quick guide for dev testing */}
           <div className="p-3 bg-amber-50/50 dark:bg-emerald-950/20 border border-amber-200 dark:border-emerald-900/50 rounded-xl text-[11px] text-slate-500 dark:text-slate-400 space-y-1 leading-normal">
             <span className="font-bold text-amber-700 dark:text-amber-400 uppercase block font-mono">🔧 Authorized Admin Credentials:</span>
-            <p>Emails: <code className="font-bold font-mono text-emerald-800 dark:text-emerald-400">tcbharat335@gmail.com</code> or <code className="font-bold font-mono text-emerald-800 dark:text-emerald-400">dkbmedia786@gmail.com</code></p>
+            <p>Emails: <code className="font-bold font-mono text-emerald-800 dark:text-emerald-400">tcbharat335@gmail.com</code></p>
           </div>
         </div>
       </div>

@@ -150,7 +150,7 @@ export default function App() {
   // Ensure user cannot bypass login with localstorage if Firebase token expired
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user && (user.email === 'dkbmedia786@gmail.com' || user.email === 'tcbharat335@gmail.com')) {
+      if (user && user.email === 'tcbharat335@gmail.com') {
         setIsLoggedIn(true);
       } else {
         setIsLoggedIn(false);
