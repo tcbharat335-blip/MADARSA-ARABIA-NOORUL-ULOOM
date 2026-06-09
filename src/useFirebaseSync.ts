@@ -89,8 +89,12 @@ export function useFirebaseSyncConfig<T>(collectionName: string, initialData: T)
            setIsLoaded(true);
         }
      }, (err) => {
-        console.error("Firebase Sync Error", err);
-        setIsLoaded(true);
+       if (err.code === 'permission-denied') {
+         console.warn(`Firestore read permission denied for collection '${collectionName}'. Gracefully falling back to local.`);
+       } else {
+         console.error("Firebase Sync Error", err);
+       }
+       setIsLoaded(true); // fall back to local
      });
      return () => unsub();
   }, [collectionName, initialData]);
