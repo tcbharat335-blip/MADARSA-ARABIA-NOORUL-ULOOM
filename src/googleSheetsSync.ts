@@ -18,9 +18,9 @@ export function getCachedAccessToken(): string | null {
 export function cleanCell(val: any): string {
   if (val === null || val === undefined) return '';
   const str = String(val);
-  // Heavy check for base64 URLs or ultra long strings
-  if (str.startsWith('data:image/') || str.length > 3000) {
-    return `[BASE64_IMAGE:${str.substring(0, 90)}...]`;
+  // Safely limit strings to 45,000 chars to avoid Google Sheets 50,000 character limit per cell.
+  if (str.length > 45000) {
+    return `[BASE64_IMAGE_TRUNCATED]`;
   }
   return str;
 }

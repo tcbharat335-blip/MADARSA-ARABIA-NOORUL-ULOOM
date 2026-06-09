@@ -205,7 +205,7 @@ export default function App() {
             return sheetStudents.map(ss => {
               const existing = prev.find(p => p.id === ss.id || p.rollNo === ss.rollNo);
               if (existing && existing.photoUrl && existing.photoUrl.startsWith('data:image/')) {
-                if (!ss.photoUrl || ss.photoUrl.startsWith('[BASE64_IMAGE:')) {
+                if (!ss.photoUrl || ss.photoUrl.includes('[BASE64_IMAGE')) {
                   return { ...ss, photoUrl: existing.photoUrl };
                 }
               }
@@ -223,7 +223,7 @@ export default function App() {
             return sheetResults.map(sr => {
               const existing = prev.find(p => p.id === sr.id || p.rollNo === sr.rollNo);
               if (existing && existing.photoUrl && existing.photoUrl.startsWith('data:image/')) {
-                if (!sr.photoUrl || sr.photoUrl.startsWith('[BASE64_IMAGE:')) {
+                if (!sr.photoUrl || sr.photoUrl.includes('[BASE64_IMAGE')) {
                   return { ...sr, photoUrl: existing.photoUrl };
                 }
               }
@@ -241,7 +241,7 @@ export default function App() {
             return sheetTeachers.map(st => {
               const existing = prev.find(p => p.id === st.id);
               if (existing && existing.photoUrl && existing.photoUrl.startsWith('data:image/')) {
-                if (!st.photoUrl || st.photoUrl.startsWith('[BASE64_IMAGE:')) {
+                if (!st.photoUrl || st.photoUrl.includes('[BASE64_IMAGE')) {
                   return { ...st, photoUrl: existing.photoUrl };
                 }
               }
@@ -259,7 +259,7 @@ export default function App() {
             return sheetGallery.map(sg => {
               const existing = prev.find(p => p.id === sg.id);
               if (existing && existing.url && existing.url.startsWith('data:image/')) {
-                if (!sg.url || sg.url.startsWith('[BASE64_IMAGE:')) {
+                if (!sg.url || sg.url.includes('[BASE64_IMAGE')) {
                   return { ...sg, url: existing.url };
                 }
               }
@@ -283,7 +283,7 @@ export default function App() {
             let configChanged = false;
             Object.entries(sheetSchoolConfig).forEach(([key, val]) => {
               const existingVal = (prev as any)[key];
-              if (existingVal && existingVal.startsWith('data:image/') && (!val || val.startsWith('[BASE64_IMAGE:'))) {
+              if (existingVal && existingVal.startsWith('data:image/') && (!val || val.includes('[BASE64_IMAGE'))) {
                 return;
               }
               if (String(existingVal) !== String(val)) {
@@ -307,7 +307,7 @@ export default function App() {
             return sheetAdmissions.map(sa => {
               const existing = prev.find(p => p.id === sa.id);
               if (existing && existing.studentPhoto && existing.studentPhoto.startsWith('data:image/')) {
-                if (!sa.studentPhoto || sa.studentPhoto.startsWith('[BASE64_IMAGE:')) {
+                if (!sa.studentPhoto || sa.studentPhoto.includes('[BASE64_IMAGE')) {
                   return { ...sa, studentPhoto: existing.studentPhoto };
                 }
               }
