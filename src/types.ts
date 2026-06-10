@@ -104,6 +104,7 @@ export interface SchoolConfig {
   heroBg1?: string;
   heroBg2?: string;
   heroBg3?: string;
+  heroBgImages?: string[];
 
   // Hero Quick Counters
   stat1Num?: string;

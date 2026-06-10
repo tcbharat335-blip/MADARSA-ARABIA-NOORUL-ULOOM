@@ -4861,29 +4861,34 @@ export default function PrincipalDashboard({
                   <h4 className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider border-b border-slate-100 dark:border-slate-850 pb-2">
                     🖼️ Hero Sliders & Institutional Dynamic Metrics
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-700">
-                    <div className="space-y-1 bg-slate-50/50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-150 dark:border-slate-850 flex flex-col justify-between">
-                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Hero Slider Image 1 (स्लाइडर १ फोटो)</label>
-                      <div className="flex items-center gap-3 mt-1">
-                        {schoolConfig.heroBg1 && (
-                          <img
-                            src={schoolConfig.heroBg1}
-                            alt="Slider 1"
-                            className="w-16 h-10 object-cover rounded border border-slate-300 dark:border-slate-700 shadow-sm"
-                          />
-                        )}
+                  
+                  <div className="flex flex-col gap-3 text-xs text-slate-700">
+                    <div className="flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-150 dark:border-slate-850">
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block">Home Page Slider Photos (होम पेज स्लाइडर फोटो)</label>
+                        <p className="text-[10px] text-slate-500 mt-1">Upload multiple photos for the homepage auto-slider. (PNG or JPG)</p>
+                      </div>
+                      <div>
                         <input
                           type="file"
                           accept="image/*"
-                          id="heroBg1UploadInput"
+                          id="heroBgImageAddInput"
                           className="hidden"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
+                              if (file.type !== "image/png" && file.type !== "image/jpeg" && file.type !== "image/jpg") {
+                                alert("Please upload a .png or .jpg format photo!");
+                                return;
+                              }
                               const reader = new FileReader();
                               reader.onload = (ev) => {
                                 if (ev.target?.result) {
-                                  setSchoolConfig({ ...schoolConfig, heroBg1: ev.target.result as string });
+                                  let currentImages = schoolConfig.heroBgImages;
+                                  if (!currentImages || currentImages.length === 0) {
+                                      currentImages = [schoolConfig.heroBg1, schoolConfig.heroBg2, schoolConfig.heroBg3].filter(Boolean) as string[];
+                                  }
+                                  setSchoolConfig({ ...schoolConfig, heroBgImages: [...currentImages, ev.target.result as string] });
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -4892,119 +4897,68 @@ export default function PrincipalDashboard({
                         />
                         <button
                           type="button"
-                          onClick={() => document.getElementById('heroBg1UploadInput')?.click()}
-                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer transition text-[11px] flex items-center gap-1"
+                          onClick={() => document.getElementById('heroBgImageAddInput')?.click()}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer transition text-[12px] flex items-center gap-2"
                         >
-                          📤 Select Image
+                          ➕ Add Slider Photo
                         </button>
-                        {schoolConfig.heroBg1 && (
-                          <button
-                            type="button"
-                            onClick={() => setSchoolConfig({ ...schoolConfig, heroBg1: "" })}
-                            className="text-[10px] text-rose-500 font-extrabold uppercase tracking-wider hover:underline cursor-pointer"
-                          >
-                            Remove
-                          </button>
-                        )}
                       </div>
                     </div>
-
-                    <div className="space-y-1 bg-slate-50/50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-150 dark:border-slate-850 flex flex-col justify-between">
-                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Hero Slider Image 2 (स्लाइडर २ फोटो)</label>
-                      <div className="flex items-center gap-3 mt-1">
-                        {schoolConfig.heroBg2 && (
-                          <img
-                            src={schoolConfig.heroBg2}
-                            alt="Slider 2"
-                            className="w-16 h-10 object-cover rounded border border-slate-300 dark:border-slate-700 shadow-sm"
-                          />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="heroBg2UploadInput"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                if (ev.target?.result) {
-                                  setSchoolConfig({ ...schoolConfig, heroBg2: ev.target.result as string });
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => document.getElementById('heroBg2UploadInput')?.click()}
-                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer transition text-[11px] flex items-center gap-1"
-                        >
-                          📤 Select Image
-                        </button>
-                        {schoolConfig.heroBg2 && (
-                          <button
-                            type="button"
-                            onClick={() => setSchoolConfig({ ...schoolConfig, heroBg2: "" })}
-                            className="text-[10px] text-rose-500 font-extrabold uppercase tracking-wider hover:underline cursor-pointer"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 bg-slate-50/50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-150 dark:border-slate-850 flex flex-col justify-between">
-                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Hero Slider Image 3 (स्लाइडर ३ फोटो)</label>
-                      <div className="flex items-center gap-3 mt-1">
-                        {schoolConfig.heroBg3 && (
-                          <img
-                            src={schoolConfig.heroBg3}
-                            alt="Slider 3"
-                            className="w-16 h-10 object-cover rounded border border-slate-300 dark:border-slate-700 shadow-sm"
-                          />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="heroBg3UploadInput"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                if (ev.target?.result) {
-                                  setSchoolConfig({ ...schoolConfig, heroBg3: ev.target.result as string });
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => document.getElementById('heroBg3UploadInput')?.click()}
-                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg cursor-pointer transition text-[11px] flex items-center gap-1"
-                        >
-                          📤 Select Image
-                        </button>
-                        {schoolConfig.heroBg3 && (
-                          <button
-                            type="button"
-                            onClick={() => setSchoolConfig({ ...schoolConfig, heroBg3: "" })}
-                            className="text-[10px] text-rose-500 font-extrabold uppercase tracking-wider hover:underline cursor-pointer"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
+                    
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                      {((schoolConfig.heroBgImages && schoolConfig.heroBgImages.length > 0) ? schoolConfig.heroBgImages : [schoolConfig.heroBg1, schoolConfig.heroBg2, schoolConfig.heroBg3].filter(Boolean) as string[]).map((img, idx) => (
+                         <div key={idx} className="relative group bg-slate-100 dark:bg-slate-800 p-2 rounded-xl flex flex-col items-center gap-2 border border-slate-200 dark:border-slate-700">
+                           <img src={img} alt={"Slide " + (idx + 1)} className="w-full h-24 object-cover rounded-lg shadow-sm" />
+                           <div className="flex justify-between w-full mt-1">
+                             <span className="font-bold text-[10px] text-slate-500">Slide {idx + 1}</span>
+                             <button
+                                type="button"
+                                onClick={() => {
+                                    let currentImages = schoolConfig.heroBgImages;
+                                    if (!currentImages || currentImages.length === 0) {
+                                        currentImages = [schoolConfig.heroBg1, schoolConfig.heroBg2, schoolConfig.heroBg3].filter(Boolean) as string[];
+                                    }
+                                    const nextImages = currentImages.filter((_, i) => i !== idx);
+                                    setSchoolConfig({ ...schoolConfig, heroBgImages: nextImages });
+                                }}
+                                className="text-[10px] text-rose-500 font-extrabold uppercase tracking-wider hover:underline cursor-pointer"
+                             >
+                               Remove
+                             </button>
+                           </div>
+                         </div>
+                      ))}
                     </div>
                   </div>
 
-
+                  {/* STAT COUNTERS START */}
+                  <div className="bg-slate-50/50 dark:bg-slate-950/40 mt-6 p-4 rounded-xl border border-slate-150 dark:border-slate-850 space-y-4">
+                    <span className="font-bold text-slate-600 dark:text-slate-300 block">Performance Metrics (Overlaid on Hero image)</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-semibold text-slate-500">Metric 1 (e.g. 50+)</label>
+                        <div className="flex gap-2">
+                          <input type="text" placeholder="Value" value={schoolConfig.stat1Num || ""} onChange={(e) => setSchoolConfig({ ...schoolConfig, stat1Num: e.target.value })} className="w-1/3 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900" />
+                          <input type="text" placeholder="Label (e.g. Certified Teachers)" value={schoolConfig.stat1Label || ""} onChange={(e) => setSchoolConfig({ ...schoolConfig, stat1Label: e.target.value })} className="w-2/3 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-semibold text-slate-500">Metric 2 (e.g. 1000+)</label>
+                        <div className="flex gap-2">
+                          <input type="text" placeholder="Value" value={schoolConfig.stat2Num || ""} onChange={(e) => setSchoolConfig({ ...schoolConfig, stat2Num: e.target.value })} className="w-1/3 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900" />
+                          <input type="text" placeholder="Label (e.g. Enrolled Students)" value={schoolConfig.stat2Label || ""} onChange={(e) => setSchoolConfig({ ...schoolConfig, stat2Label: e.target.value })} className="w-2/3 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-semibold text-slate-500">Metric 3 (e.g. 15+ Years)</label>
+                        <div className="flex gap-2">
+                          <input type="text" placeholder="Value" value={schoolConfig.stat3Num || ""} onChange={(e) => setSchoolConfig({ ...schoolConfig, stat3Num: e.target.value })} className="w-1/3 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900" />
+                          <input type="text" placeholder="Label (e.g. Academic Excellence)" value={schoolConfig.stat3Label || ""} onChange={(e) => setSchoolConfig({ ...schoolConfig, stat3Label: e.target.value })} className="w-2/3 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* SECTION 3: CREDENTIAL PANELS */}

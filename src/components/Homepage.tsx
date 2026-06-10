@@ -41,18 +41,22 @@ export default function Homepage({ config, teachers, gallery, setCurrentTab, onA
 
   // Auto Hero Slider State
   const [heroSlide, setHeroSlide] = useState(0);
-  const heroBackgrounds = [
-    config.heroBg1 || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1200",
-    config.heroBg2 || "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=1200",
-    config.heroBg3 || "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=1200"
-  ];
+  const rawBackgrounds = config.heroBgImages && config.heroBgImages.length > 0 
+    ? config.heroBgImages 
+    : [
+        config.heroBg1 || "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1200",
+        config.heroBg2 || "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=1200",
+        config.heroBg3 || "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=1200"
+      ];
+  const heroBackgroundsRaw = rawBackgrounds.filter(bg => bg !== "");
+  const heroBackgrounds = heroBackgroundsRaw.length > 0 ? heroBackgroundsRaw : ["https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1200"];
 
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroSlide((prev) => (prev + 1) % heroBackgrounds.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroBackgrounds.length]);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
