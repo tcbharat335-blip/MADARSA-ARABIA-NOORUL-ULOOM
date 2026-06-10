@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Printer, RefreshCw, Award } from 'lucide-react';
-import { Result, ClassName } from '../types';
+import { Result, ClassName, SchoolConfig } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getClassSubjects, getSchoolClasses, getSchoolSessions } from '../data';
 
 interface ResultPortalProps {
   results: Result[];
+  schoolConfig?: SchoolConfig;
   triggerNotification?: (title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error' | 'congrats') => void;
 }
 
@@ -67,7 +68,7 @@ export function formatClassName(className: string | undefined): string {
   });
 }
 
-export default function ResultPortal({ results, triggerNotification }: ResultPortalProps) {
+export default function ResultPortal({ results, schoolConfig, triggerNotification }: ResultPortalProps) {
   const [rollNo, setRollNo] = useState('');
   const [selectedClass, setSelectedClass] = useState<ClassName>('EDADIA');
   const [selectedExamType, setSelectedExamType] = useState<string>('Annual');
@@ -101,7 +102,7 @@ export default function ResultPortal({ results, triggerNotification }: ResultPor
     const list: { examType: string; session: string; label: string }[] = [];
     
     // Add defaults first
-    const activeSessions = getSchoolSessions();
+    const activeSessions = getSchoolSessions(schoolConfig);
     const defaults = activeSessions.flatMap(sess => [
       { examType: "Annual", session: sess, label: `Annual Examination - ${sess} (सालाना / सालانہ)` },
       { examType: "Half-Yearly", session: sess, label: `Half-Yearly Examination - ${sess} (छमाही / शश ماہی)` },
@@ -155,14 +156,16 @@ export default function ResultPortal({ results, triggerNotification }: ResultPor
   const [isGeneratingPrint, setIsGeneratingPrint] = useState(false);
 
   useEffect(() => {
-    // Load custom logos uploaded in panel
-    const logo = localStorage.getItem("m_logo");
+    // Load custom logos uploaded in panel or from centralized config
+    const logoUrlConfig = schoolConfig?.logoUrl;
+    const urduLogoUrlConfig = schoolConfig?.urduLogoUrl;
+    const logo = logoUrlConfig || localStorage.getItem("m_logo");
     if (logo) setSchoolLogo(logo);
-    const uLogo = localStorage.getItem("m_urdu_logo");
+    const uLogo = urduLogoUrlConfig || localStorage.getItem("m_urdu_logo");
     if (uLogo) setUrduLogo(uLogo);
-  }, [searchTriggered]);
+  }, [searchTriggered, schoolConfig]);
 
-  const classes = getSchoolClasses() as ClassName[];
+  const classes = getSchoolClasses(schoolConfig) as ClassName[];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,7 +213,7 @@ export default function ResultPortal({ results, triggerNotification }: ResultPor
     if (triggerNotification) {
       if (resultObj) {
         // Calculate dynamic pass or fail
-        const subjects = getClassSubjects(resultObj.className);
+        const subjects = getClassSubjects(resultObj.className, schoolConfig);
         const avgMark = subjects.length > 0 
           ? (subjects.reduce((sum, sub, i) => sum + getSubjectMark(resultObj, sub, i), 0) / subjects.length)
           : 0;
@@ -1162,7 +1165,7 @@ export default function ResultPortal({ results, triggerNotification }: ResultPor
                     </tr>
                   </thead>
                   <tbody>
-                    {getClassSubjects(foundResult.className).map((sub, idx) => {
+                    {getClassSubjects(foundResult.className, schoolConfig).map((sub, idx) => {
                       const mark = getSubjectMark(foundResult, sub, idx);
                       const color = SUBJECT_COLORS[idx % SUBJECT_COLORS.length];
 

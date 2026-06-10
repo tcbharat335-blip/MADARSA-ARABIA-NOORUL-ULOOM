@@ -185,9 +185,15 @@ export interface SchoolConfig {
 
   // Custom Logo URL
   logoUrl?: string;
+  urduLogoUrl?: string;
 
   // Google Sheets integration configuration
   googleSpreadsheetId?: string;
+
+  // Global settings for dropdowns saved to Firebase (JSON strings)
+  schoolClassesListJson?: string;
+  schoolSessionsListJson?: string;
+  classSubjectsJsonMap?: string;
 }
 
 export interface Dua {

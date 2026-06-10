@@ -358,7 +358,13 @@ export const DEFAULT_CLASSES: string[] = [
   'L.K.G', 'U.K.G', '1ST A', '1ST B', '2ND A', '2ND B', '3RD A', '3RD B', '4TH A', '4TH B', '5TH A', '5TH B', 'EDADIA', 'FARSI', 'ARBI'
 ];
 
-export const getSchoolClasses = (): string[] => {
+export const getSchoolClasses = (config?: Partial<SchoolConfig>): string[] => {
+  if (config?.schoolClassesListJson) {
+    try {
+      const parsed = JSON.parse(config.schoolClassesListJson);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
   if (typeof window === 'undefined') {
     return DEFAULT_CLASSES;
   }
@@ -380,7 +386,13 @@ export const DEFAULT_SESSIONS: string[] = [
   "2024-2025", "2025-2026", "2026-2027", "2027-2028"
 ];
 
-export const getSchoolSessions = (): string[] => {
+export const getSchoolSessions = (config?: Partial<SchoolConfig>): string[] => {
+  if (config?.schoolSessionsListJson) {
+    try {
+      const parsed = JSON.parse(config.schoolSessionsListJson);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
   if (typeof window === 'undefined') {
     return DEFAULT_SESSIONS;
   }
@@ -425,7 +437,15 @@ export const DEFAULT_CLASS_SUBJECTS: Record<string, string[]> = {
   "ARBI": [...ORIGINAL_10_SUBJECTS]
 };
 
-export const getClassSubjects = (className: string): string[] => {
+export const getClassSubjects = (className: string, config?: Partial<SchoolConfig>): string[] => {
+  if (config?.classSubjectsJsonMap) {
+    try {
+      const parsed = JSON.parse(config.classSubjectsJsonMap);
+      if (parsed && parsed[className] && Array.isArray(parsed[className])) {
+        return parsed[className];
+      }
+    } catch {}
+  }
   if (typeof window === 'undefined') {
     return DEFAULT_CLASS_SUBJECTS[className] || ORIGINAL_10_SUBJECTS;
   }

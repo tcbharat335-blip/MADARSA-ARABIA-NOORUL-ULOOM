@@ -60,7 +60,7 @@ export function normalizeClassName(rawClass: any): ClassName {
   
   // If exact match of known types, return it
   const validClasses: ClassName[] = [
-    ...getSchoolClasses() as ClassName[],
+    ...getSchoolClasses(schoolConfig) as ClassName[],
     '1ST', '2ND', '3RD', '4TH', '5TH'
   ];
   if (validClasses.includes(str as any)) {
@@ -119,7 +119,7 @@ export default function PrincipalDashboard({
 }: PrincipalDashboardProps) {
   // Dynamic class weights for sorting classes properly with dynamic classes
   const classWeights: Record<string, number> = {};
-  getSchoolClasses().forEach((cls, idx) => {
+  getSchoolClasses(schoolConfig).forEach((cls, idx) => {
     classWeights[cls] = idx + 1;
   });
   classWeights['1ST'] = classWeights['1ST A'] || 3;
@@ -244,6 +244,22 @@ export default function PrincipalDashboard({
   const [subjectKeysMap, setSubjectKeysMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    // Intercept localStorage writes for dynamic dropdowns and mirror them to SchoolConfig Firebase State so that students (on other devices) can see the dynamic class and subject updates
+    const originalSetItem = window.localStorage.setItem;
+    window.localStorage.setItem = function(key, value) {
+      originalSetItem.apply(this, arguments as any);
+      if (key === "school_classes_list") setSchoolConfig(prev => ({ ...prev, schoolClassesListJson: value }));
+      if (key === "school_sessions_list") setSchoolConfig(prev => ({ ...prev, schoolSessionsListJson: value }));
+      if (key === "madarsa_class_subjects") setSchoolConfig(prev => ({ ...prev, classSubjectsJsonMap: value }));
+      if (key === "m_logo") setSchoolConfig(prev => ({ ...prev, logoUrl: value }));
+      if (key === "m_urdu_logo") setSchoolConfig(prev => ({ ...prev, urduLogoUrl: value }));
+    };
+    return () => {
+      window.localStorage.setItem = originalSetItem;
+    };
+  }, [setSchoolConfig]);
+
+  useEffect(() => {
     const subjects = getClassSubjects(adminSclass);
     setSubjectKeysMap(prev => {
       const next = { ...prev };
@@ -265,8 +281,8 @@ export default function PrincipalDashboard({
     });
   }, [adminSclass, subjectConfigChangeCounter]);
 
-  const [customClasses, setCustomClasses] = useState<string[]>(() => getSchoolClasses());
-  const [customSessions, setCustomSessions] = useState<string[]>(() => getSchoolSessions());
+  const [customClasses, setCustomClasses] = useState<string[]>(() => getSchoolClasses(schoolConfig));
+  const [customSessions, setCustomSessions] = useState<string[]>(() => getSchoolSessions(schoolConfig));
   const [addSessionInput, setAddSessionInput] = useState("");
   const [editingSessionOldName, setEditingSessionOldName] = useState<string | null>(null);
   const [editingSessionNewName, setEditingSessionNewName] = useState("");
@@ -367,7 +383,13 @@ export default function PrincipalDashboard({
     setEditingSessionOldName(null);
     alert(`Academic Session "${oldName}" successfully modified to "${normalizedNewName}" across all systems!`);
   };
-  const [selectedConfigClass, setSelectedConfigClass] = useState<ClassName>(() => (getSchoolClasses()[0] || 'EDADIA') as ClassName);
+  // Whenever schoolConfig updates from Firebase, ensure the customClasses/Sessions state is in sync if they changed
+  useEffect(() => {
+    setCustomClasses(getSchoolClasses(schoolConfig));
+    setCustomSessions(getSchoolSessions(schoolConfig));
+  }, [schoolConfig.schoolClassesListJson, schoolConfig.schoolSessionsListJson]);
+
+  const [selectedConfigClass, setSelectedConfigClass] = useState<ClassName>(() => (getSchoolClasses(schoolConfig)[0] || 'EDADIA') as ClassName);
   const [newSubjectInput, setNewSubjectInput] = useState("");
   const [addClassInput, setAddClassInput] = useState("");
   const [editingClassOldName, setEditingClassOldName] = useState<string | null>(null);
@@ -2172,19 +2194,21 @@ export default function PrincipalDashboard({
                   <input
                     type="file"
                     id="adminLogoUploadInput"
-                    accept="image/png"
+                    accept="image/png, image/jpeg, image/jpg"
                     style={{ display: 'none' }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        if (file.type !== "image/png") {
-                          alert("Please upload a transparent .png format logo only to avoid background errors!");
+                        if (file.type !== "image/png" && file.type !== "image/jpeg" && file.type !== "image/jpg") {
+                          alert("Please upload a .png or .jpg format logo to avoid background errors!");
                         }
                         const reader = new FileReader();
-                        reader.onload = (ev) => {
+                        reader.onload = async (ev) => {
                           if (ev.target?.result) {
-                            localStorage.setItem("m_logo", ev.target.result as string);
-                            setAdminSchoolLogo(ev.target.result as string);
+                            const res = ev.target.result as string;
+                            localStorage.setItem("m_logo", res);
+                            setAdminSchoolLogo(res);
+                            setSchoolConfig(prev => ({ ...prev, logoUrl: res }));
                           }
                         };
                         reader.readAsDataURL(file);
@@ -2194,19 +2218,21 @@ export default function PrincipalDashboard({
                   <input
                     type="file"
                     id="adminUrduUploadInput"
-                    accept="image/png"
+                    accept="image/png, image/jpeg, image/jpg"
                     style={{ display: 'none' }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        if (file.type !== "image/png") {
-                          alert("Please upload a transparent .png format Urdu name logo only!");
+                        if (file.type !== "image/png" && file.type !== "image/jpeg" && file.type !== "image/jpg") {
+                          alert("Please upload a .png or .jpg format Urdu name logo!");
                         }
                         const reader = new FileReader();
-                        reader.onload = (ev) => {
+                        reader.onload = async (ev) => {
                           if (ev.target?.result) {
-                            localStorage.setItem("m_urdu_logo", ev.target.result as string);
-                            setAdminUrduLogo(ev.target.result as string);
+                            const res = ev.target.result as string;
+                            localStorage.setItem("m_urdu_logo", res);
+                            setAdminUrduLogo(res);
+                            setSchoolConfig(prev => ({ ...prev, urduLogoUrl: res }));
                           }
                         };
                         reader.readAsDataURL(file);
@@ -3869,16 +3895,16 @@ export default function PrincipalDashboard({
                       />
                     </div>
                     <div className="flex flex-col gap-1 col-span-2">
-                      <label className="font-bold text-slate-750 dark:text-slate-350">Profile Photo (Transparent PNG .png only prefer so back-ground behind looks pristine)</label>
+                      <label className="font-bold text-slate-750 dark:text-slate-350">Profile Photo (PNG or JPG)</label>
                       <div className="flex items-center gap-3">
                         <input
                           type="file"
-                          accept="image/png"
+                          accept="image/png, image/jpeg, image/jpg"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              if (file.type !== "image/png") {
-                                alert("Please select a transparent .png format photo only!");
+                              if (file.type !== "image/png" && file.type !== "image/jpeg" && file.type !== "image/jpg") {
+                                alert("Please select a .png or .jpg format photo!");
                               }
                               const reader = new FileReader();
                               reader.onload = (ev) => {
@@ -3946,16 +3972,16 @@ export default function PrincipalDashboard({
                       />
                     </div>
                     <div className="flex flex-col gap-1 col-span-2">
-                      <label className="font-bold text-slate-750 dark:text-slate-350">Profile Photo (Transparent PNG .png folder so backend doesn't black)</label>
+                      <label className="font-bold text-slate-750 dark:text-slate-350">Profile Photo (PNG or JPG)</label>
                       <div className="flex items-center gap-3">
                         <input
                           type="file"
-                          accept="image/png"
+                          accept="image/png, image/jpeg, image/jpg"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              if (file.type !== "image/png") {
-                                alert("Please select a transparent .png format photo only!");
+                              if (file.type !== "image/png" && file.type !== "image/jpeg" && file.type !== "image/jpg") {
+                                alert("Please select a .png or .jpg format photo!");
                               }
                               const reader = new FileReader();
                               reader.onload = (ev) => {
