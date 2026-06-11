@@ -340,7 +340,7 @@ export const getStoredData = <T>(key: string, defaultValue: T): T => {
     const item = window.localStorage.getItem(key);
     return item ? JSON.parse(item) : defaultValue;
   } catch (error) {
-    console.error(`Error reading localStorage key "${key}":`, error);
+    console.warn(`[LocalStorage Warning] Error reading key "${key}":`, error);
     return defaultValue;
   }
 };
@@ -349,8 +349,20 @@ export const setStoredData = <T>(key: string, value: T): void => {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.error(`Error setting localStorage key "${key}":`, error);
+  } catch (error: any) {
+    // Gracefully catch browser quota exceeding or other storage block exceptions
+    const isQuotaError = error && (
+      error.name === 'QuotaExceededError' ||
+      error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+      error.code === 22 ||
+      error.code === 1014 ||
+      (error.message && error.message.toLowerCase().includes('quota'))
+    );
+    if (isQuotaError) {
+      console.warn(`[LocalStorage Quota Warning] Unable to cache key "${key}" locally. This is safe as your data is persistently synced in the cloud via Firestore.`);
+    } else {
+      console.warn(`[LocalStorage Warning] Error writing key "${key}":`, error);
+    }
   }
 };
 

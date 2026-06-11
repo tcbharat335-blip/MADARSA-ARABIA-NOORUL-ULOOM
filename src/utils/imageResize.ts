@@ -38,8 +38,8 @@ export function compressImageBase64(base64Str: string, maxWidth = 180, maxHeight
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         
-        // JPEG format compressing at 0.7 quality produces ultra lightweight binaries
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        // WEBP format compressing at 0.5 quality produces ultra lightweight binaries
+        const compressed = canvas.toDataURL('image/webp', 0.5);
         resolve(compressed);
       } else {
         resolve(base64Str);

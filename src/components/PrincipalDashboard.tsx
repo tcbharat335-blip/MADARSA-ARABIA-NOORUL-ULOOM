@@ -33,7 +33,7 @@ interface PrincipalDashboardProps {
   triggerNotification?: (title: string, message: string, type?: 'success' | 'info' | 'warning' | 'error' | 'congrats') => void;
 }
 
-export function normalizeClassName(rawClass: any): ClassName {
+export function normalizeClassName(rawClass: any, config?: SchoolConfig): ClassName {
   if (!rawClass) return "EDADIA";
   const str = String(rawClass).trim().toUpperCase();
   if (str === "L.K.G" || str === "LKG" || str === "L. K. G.") return "L.K.G";
@@ -60,7 +60,7 @@ export function normalizeClassName(rawClass: any): ClassName {
   
   // If exact match of known types, return it
   const validClasses: ClassName[] = [
-    ...getSchoolClasses(schoolConfig) as ClassName[],
+    ...(config ? getSchoolClasses(config) : []) as ClassName[],
     '1ST', '2ND', '3RD', '4TH', '5TH'
   ];
   if (validClasses.includes(str as any)) {
@@ -247,7 +247,22 @@ export default function PrincipalDashboard({
     // Intercept localStorage writes for dynamic dropdowns and mirror them to SchoolConfig Firebase State so that students (on other devices) can see the dynamic class and subject updates
     const originalSetItem = window.localStorage.setItem;
     window.localStorage.setItem = function(key, value) {
-      originalSetItem.apply(this, arguments as any);
+      try {
+        originalSetItem.apply(this, arguments as any);
+      } catch (error: any) {
+        const isQuotaError = error && (
+          error.name === 'QuotaExceededError' ||
+          error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+          error.code === 22 ||
+          error.code === 1014 ||
+          (error.message && error.message.toLowerCase().includes('quota'))
+        );
+        if (isQuotaError) {
+          console.warn(`[LocalStorage Quota Warning] Caught write attempt for "${key}" exceeding local storage quota. Safely ignored as database is on Cloud Firestore.`);
+        } else {
+          console.warn(`[LocalStorage Warning] Failed to direct write key "${key}":`, error);
+        }
+      }
       if (key === "school_classes_list") setSchoolConfig(prev => ({ ...prev, schoolClassesListJson: value }));
       if (key === "school_sessions_list") setSchoolConfig(prev => ({ ...prev, schoolSessionsListJson: value }));
       if (key === "madarsa_class_subjects") setSchoolConfig(prev => ({ ...prev, classSubjectsJsonMap: value }));
@@ -892,7 +907,7 @@ export default function PrincipalDashboard({
             return {
               id: item.id || "r_" + Date.now() + Math.random(),
               rollNo: item.rollNo || item.roll || "2026101",
-              className: normalizeClassName(item.className || item.sclass || "EDADIA"),
+              className: normalizeClassName(item.className || item.sclass || "EDADIA", schoolConfig),
               passingYear: itemPassingYear,
               studentName: item.studentName || item.name || "Default Student",
               fatherName: item.fatherName || item.fname || "Default Father",
@@ -1176,7 +1191,7 @@ export default function PrincipalDashboard({
   const handleEditRecord = (roll: string) => {
     const match = results.find(r => r.rollNo.toString().trim() === roll.toString().trim());
     if (match) {
-      const normClass = normalizeClassName(match.className);
+      const normClass = normalizeClassName(match.className, schoolConfig);
       setAdminRegNo(match.regNo || "G- 59313");
       setAdminUdise(match.udise || "4053");
       setAdminRollno(match.rollNo);
@@ -2205,7 +2220,8 @@ export default function PrincipalDashboard({
                         const reader = new FileReader();
                         reader.onload = async (ev) => {
                           if (ev.target?.result) {
-                            const res = ev.target.result as string;
+                            let res = ev.target.result as string;
+                            try { res = await compressImageBase64(res, 400, 400); } catch(e){}
                             localStorage.setItem("m_logo", res);
                             setAdminSchoolLogo(res);
                             setSchoolConfig(prev => ({ ...prev, logoUrl: res }));
@@ -2229,7 +2245,8 @@ export default function PrincipalDashboard({
                         const reader = new FileReader();
                         reader.onload = async (ev) => {
                           if (ev.target?.result) {
-                            const res = ev.target.result as string;
+                            let res = ev.target.result as string;
+                            try { res = await compressImageBase64(res, 400, 400); } catch(e){}
                             localStorage.setItem("m_urdu_logo", res);
                             setAdminUrduLogo(res);
                             setSchoolConfig(prev => ({ ...prev, urduLogoUrl: res }));
@@ -2248,9 +2265,11 @@ export default function PrincipalDashboard({
                       const file = e.target.files?.[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = (ev) => {
+                        reader.onload = async (ev) => {
                           if (ev.target?.result) {
-                            setAdminPhoto(ev.target.result as string);
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setAdminPhoto(compressed);
                           }
                         };
                         reader.readAsDataURL(file);
@@ -3907,9 +3926,13 @@ export default function PrincipalDashboard({
                                 alert("Please select a .png or .jpg format photo!");
                               }
                               const reader = new FileReader();
-                              reader.onload = (ev) => {
+                              reader.onload = async (ev) => {
                                 if (ev.target?.result) {
-                                  setNewTeacher(prev => ({ ...prev, photoUrl: ev.target!.result as string }));
+                                  let compressed = ev.target.result as string;
+                                  try {
+                                      compressed = await compressImageBase64(ev.target.result as string, 400, 400);
+                                  } catch(e) {}
+                                  setNewTeacher(prev => ({ ...prev, photoUrl: compressed }));
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -3984,9 +4007,13 @@ export default function PrincipalDashboard({
                                 alert("Please select a .png or .jpg format photo!");
                               }
                               const reader = new FileReader();
-                              reader.onload = (ev) => {
+                              reader.onload = async (ev) => {
                                 if (ev.target?.result) {
-                                  setEditingTeacher(prev => prev ? ({ ...prev, photoUrl: ev.target!.result as string }) : null);
+                                  let compressed = ev.target.result as string;
+                                  try {
+                                      compressed = await compressImageBase64(ev.target.result as string, 400, 400);
+                                  } catch(e) {}
+                                  setEditingTeacher(prev => prev ? ({ ...prev, photoUrl: compressed }) : null);
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -4202,9 +4229,11 @@ export default function PrincipalDashboard({
                               return;
                             }
                             const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              if (ev.target?.result) {
-                                setNewGallery(prev => ({ ...prev, url: ev.target!.result as string }));
+                            reader.onload = async (ev) => {
+                                if (ev.target?.result) {
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setNewGallery(prev => ({ ...prev, url: compressed }));
                               }
                             };
                             reader.readAsDataURL(file);
@@ -4226,9 +4255,11 @@ export default function PrincipalDashboard({
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onload = (ev) => {
+                              reader.onload = async (ev) => {
                                 if (ev.target?.result) {
-                                  setNewGallery(prev => ({ ...prev, url: ev.target!.result as string }));
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setNewGallery(prev => ({ ...prev, url: compressed }));
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -4583,14 +4614,83 @@ export default function PrincipalDashboard({
                       )}
 
                       {sheetSyncMsg && (
-                        <div className={`p-3.5 rounded-xl text-[11px] font-bold border flex items-start gap-2.5 ${
-                          sheetSyncStatus === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-250 text-emerald-800 dark:text-emerald-400' :
-                          sheetSyncStatus === 'error' ? 'bg-red-50 dark:bg-red-950/20 border-red-250 text-red-800 dark:text-red-400' :
-                          'bg-slate-100 dark:bg-slate-900 border-slate-200 text-slate-700 dark:text-slate-300'
-                        }`}>
-                          <Check className={`w-4 h-4 shrink-0 mt-0.5 ${sheetSyncStatus === 'creating' || sheetSyncStatus === 'uploading' ? 'animate-spin' : ''}`} />
-                          <span>{sheetSyncMsg}</span>
-                        </div>
+                        sheetSyncStatus === 'error' && (sheetSyncMsg.includes('403') || sheetSyncMsg.toLowerCase().includes('disabled') || sheetSyncMsg.toLowerCase().includes('api has not been used')) ? (
+                          (() => {
+                            const projectMatch = sheetSyncMsg.match(/project[=\s:]+([0-9]+)/i);
+                            const projectNum = projectMatch ? projectMatch[1] : '';
+                            const sheetsApiUrl = projectNum 
+                              ? `https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=${projectNum}`
+                              : "https://console.cloud.google.com/apis/library/sheets.googleapis.com";
+                            const driveApiUrl = projectNum 
+                              ? `https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=${projectNum}`
+                              : "https://console.cloud.google.com/apis/library/drive.googleapis.com";
+                            
+                            return (
+                              <div className="p-4 rounded-xl border border-red-250 dark:border-red-900/40 bg-red-50/70 dark:bg-red-950/10 text-slate-800 dark:text-slate-300 space-y-3">
+                                <div className="flex items-start gap-2 text-red-700 dark:text-red-400 font-extrabold text-xs">
+                                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 animate-bounce" />
+                                  <span>🔧 GOOGLE API ACTIVATION REQUIRED / गूगल एपीआई चालू करना आवश्यक है</span>
+                                </div>
+                                
+                                <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                                  आपके Google Cloud / Firebase प्रोजेक्ट में <strong className="font-bold text-red-600 dark:text-red-400">Google Sheets API</strong> बंद (Disabled) है। कृपया अपने गूगल क्लाउड अकाउंट में जाकर इसे चालू करें:
+                                </p>
+                                
+                                <div className="space-y-2 pt-1 font-sans text-xs">
+                                  <a 
+                                    href={sheetsApiUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-between p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow text-center transition-all select-none hover:no-underline"
+                                  >
+                                    <span>👉 STEP 1: Enable Google Sheets API (शीट्स चालू करें)</span>
+                                    <span className="text-[10px] bg-emerald-500 px-1.5 py-0.5 rounded uppercase font-black">Click here</span>
+                                  </a>
+                                  
+                                  <a 
+                                    href={driveApiUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-between p-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow text-center transition-all select-none hover:no-underline"
+                                  >
+                                    <span>👉 STEP 2: Enable Google Drive API (ड्राइव चालू करें)</span>
+                                    <span className="text-[10px] bg-indigo-500 px-1.5 py-0.5 rounded uppercase font-black font-mono">Click here</span>
+                                  </a>
+                                </div>
+                                
+                                <div className="p-2.5 bg-amber-500/10 dark:bg-amber-500/5 rounded-lg border border-amber-500/20 text-[10.5px] text-amber-800 dark:text-amber-400 space-y-1">
+                                  <strong className="font-bold uppercase block">📝 Follow these simple steps (इन निर्देशों का पालन करें):</strong>
+                                  <div className="list-decimal list-inside space-y-1">
+                                    <span>1. ऊपर दिए गए दोनों बटनों पर एक-एक करके क्लिक करें।</span><br/>
+                                    <span>2. खुलने वाले दोनों Google Cloud पेजों पर नीले <strong className="font-bold">"Enable" (सक्रिय करें)</strong> बटन पर क्लिक करें।</span><br/>
+                                    <span>3. एपीआई चालू होने के बाद 2 मिनट तक इंतजार करें ताकि गूगल डेटा सिंक कर सके।</span><br/>
+                                    <span>4. फिर वापस यहाँ आकर <strong className="font-bold">"🆕 Create & Link Sheet"</strong> बटन दोबारा दबाएं।</span>
+                                  </div>
+                                </div>
+
+                                <details className="border-t border-red-250/40 dark:border-red-900/20 pt-2 select-none">
+                                  <summary className="text-[9.5px] font-medium text-red-600 dark:text-red-400 cursor-pointer outline-none hover:underline">
+                                    See raw technical error details
+                                  </summary>
+                                  <textarea 
+                                    readOnly 
+                                    value={sheetSyncMsg} 
+                                    className="w-full h-24 mt-1.5 p-1.5 font-mono text-[9px] bg-slate-100 dark:bg-gray-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 rounded-lg outline-none select-text"
+                                  />
+                                </details>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div className={`p-3.5 rounded-xl text-[11px] font-bold border flex items-start gap-2.5 ${
+                            sheetSyncStatus === 'success' ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-250 text-emerald-800 dark:text-emerald-400' :
+                            sheetSyncStatus === 'error' ? 'bg-red-50 dark:bg-red-950/20 border-red-250 text-red-800 dark:text-red-400' :
+                            'bg-slate-100 dark:bg-slate-900 border-slate-200 text-slate-700 dark:text-slate-300'
+                          }`}>
+                            <Check className={`w-4 h-4 shrink-0 mt-0.5 ${sheetSyncStatus === 'creating' || sheetSyncStatus === 'uploading' ? 'animate-spin' : ''}`} />
+                            <span>{sheetSyncMsg}</span>
+                          </div>
+                        )
                       )}
                     </div>
 
@@ -4712,9 +4812,11 @@ export default function PrincipalDashboard({
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onload = (ev) => {
+                              reader.onload = async (ev) => {
                                 if (ev.target?.result) {
-                                  setSchoolConfig({ ...schoolConfig, principalPhotoUrl: ev.target.result as string });
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setSchoolConfig({ ...schoolConfig, principalPhotoUrl: compressed });
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -4882,13 +4984,17 @@ export default function PrincipalDashboard({
                                 return;
                               }
                               const reader = new FileReader();
-                              reader.onload = (ev) => {
+                              reader.onload = async (ev) => {
                                 if (ev.target?.result) {
+                                  let compressed = ev.target.result as string;
+                                  try {
+                                      compressed = await compressImageBase64(ev.target.result as string, 1200, 800);
+                                  } catch(e) {}
                                   let currentImages = schoolConfig.heroBgImages;
                                   if (!currentImages || currentImages.length === 0) {
                                       currentImages = [schoolConfig.heroBg1, schoolConfig.heroBg2, schoolConfig.heroBg3].filter(Boolean) as string[];
                                   }
-                                  setSchoolConfig({ ...schoolConfig, heroBgImages: [...currentImages, ev.target.result as string] });
+                                  setSchoolConfig({ ...schoolConfig, heroBgImages: [...currentImages, compressed] });
                                 }
                               };
                               reader.readAsDataURL(file);
@@ -5166,9 +5272,11 @@ export default function PrincipalDashboard({
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    if (ev.target?.result) {
-                                      setSchoolConfig({ ...schoolConfig, fac1Img: ev.target.result as string });
+                                  reader.onload = async (ev) => {
+                                if (ev.target?.result) {
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setSchoolConfig({ ...schoolConfig, fac1Img: compressed });
                                     }
                                   };
                                   reader.readAsDataURL(file);
@@ -5237,9 +5345,11 @@ export default function PrincipalDashboard({
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    if (ev.target?.result) {
-                                      setSchoolConfig({ ...schoolConfig, fac2Img: ev.target.result as string });
+                                  reader.onload = async (ev) => {
+                                if (ev.target?.result) {
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setSchoolConfig({ ...schoolConfig, fac2Img: compressed });
                                     }
                                   };
                                   reader.readAsDataURL(file);
@@ -5308,9 +5418,11 @@ export default function PrincipalDashboard({
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    if (ev.target?.result) {
-                                      setSchoolConfig({ ...schoolConfig, fac3Img: ev.target.result as string });
+                                  reader.onload = async (ev) => {
+                                if (ev.target?.result) {
+                                  let compressed = ev.target.result as string;
+                                  try { compressed = await compressImageBase64(compressed, 800, 800); } catch(e) {}
+                                  setSchoolConfig({ ...schoolConfig, fac3Img: compressed });
                                     }
                                   };
                                   reader.readAsDataURL(file);

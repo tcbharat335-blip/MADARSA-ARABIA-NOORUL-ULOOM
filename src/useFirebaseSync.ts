@@ -53,7 +53,7 @@ export function useFirebaseSync<T extends {id: string}>(collectionName: string, 
        }
        setIsLoaded(true);
      }, (err) => {
-       if (err.code === 'permission-denied') {
+       if (err.code === 'permission-denied' || err.code === 'resource-exhausted') {
          console.warn(`Firestore read permission denied for collection '${collectionName}'. Gracefully falling back to local.`);
        } else {
          console.error("Firebase Sync Error", err);
@@ -77,6 +77,7 @@ export function useFirebaseSync<T extends {id: string}>(collectionName: string, 
 export function useFirebaseSyncConfig<T>(collectionName: string, initialData: T) {
   const [state, setState] = useState<T>(initialData);
   const [isLoaded, setIsLoaded] = useState(false);
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
      const unsub = onSnapshot(doc(db, collectionName, 'main'), (snap) => {
@@ -89,7 +90,7 @@ export function useFirebaseSyncConfig<T>(collectionName: string, initialData: T)
            setIsLoaded(true);
         }
      }, (err) => {
-       if (err.code === 'permission-denied') {
+       if (err.code === 'permission-denied' || err.code === 'resource-exhausted') {
          console.warn(`Firestore read permission denied for collection '${collectionName}'. Gracefully falling back to local.`);
        } else {
          console.error("Firebase Sync Error", err);
@@ -97,13 +98,18 @@ export function useFirebaseSyncConfig<T>(collectionName: string, initialData: T)
        setIsLoaded(true); // fall back to local
      });
      return () => unsub();
-  }, [collectionName, initialData]);
+  }, [collectionName]);
 
   const customSetState = (valOrFunc: React.SetStateAction<T>) => {
       setState((prev: T) => {
          const newVal = typeof valOrFunc === 'function' ? (valOrFunc as any)(prev) : valOrFunc;
          if (JSON.stringify(prev) !== JSON.stringify(newVal)) {
-           setDoc(doc(db, collectionName, 'main'), newVal);
+           if (debounceTimer.current) clearTimeout(debounceTimer.current);
+           debounceTimer.current = setTimeout(() => {
+             setDoc(doc(db, collectionName, 'main'), newVal).catch((err) => {
+                console.error("Firebase Config Sync Error:", err);
+             });
+           }, 1500);
          }
          return newVal;
       });

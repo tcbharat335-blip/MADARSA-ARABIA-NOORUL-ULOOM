@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { AdmissionApplication, ClassName, GalleryItem } from '../types';
 import { getSchoolClasses, getSchoolSessions } from '../data';
+import { compressImageBase64 } from '../utils/imageResize';
 
 interface AdmissionFormProps {
   onSubmit: (app: Omit<AdmissionApplication, 'id' | 'applyDate' | 'status'> & { id?: string }) => void;
@@ -126,9 +127,13 @@ export default function AdmissionForm({ onSubmit, admissions, gallery = [], trig
         return;
       }
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         if (ev.target?.result) {
-          setFormData(prev => ({ ...prev, studentPhoto: ev.target!.result as string }));
+          let compressed = ev.target.result as string;
+          try {
+            compressed = await compressImageBase64(compressed, 400, 400);
+          } catch(e) {}
+          setFormData(prev => ({ ...prev, studentPhoto: compressed }));
         }
       };
       reader.readAsDataURL(file);
@@ -181,6 +186,14 @@ export default function AdmissionForm({ onSubmit, admissions, gallery = [], trig
     }
     if (formData.aadhaarNumber && formData.aadhaarNumber.replace(/\s/g, '').length !== 12) {
       alert("Please enter a valid 12-digit Aadhaar Card Number");
+      return;
+    }
+    if (!formData.studentPhoto) {
+      alert("⚠️ CANDIDATE PHOTO IS MISSING! (उम्मीदवार की फोटो नहीं लगी है)\n\n" +
+            "Kripya candidate ki passport-size photo select karein. Iske liye:\n" +
+            "1. 'Upload Photo' (फोटो अपलोड करें) par click karke direct mobile/computer se file select karein, ya\n" +
+            "2. 'Select from Gallery' (गैलरी से चुनें) button par click karke school media gallery se koi photo chunein.\n\n" +
+            "Photo ke bina form submit nahi hoga. Please photo add karke retry karein.");
       return;
     }
 
@@ -607,27 +620,49 @@ export default function AdmissionForm({ onSubmit, admissions, gallery = [], trig
               </h3>
 
               {/* Student avatar builder */}
-              <div className="p-5 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-850 flex flex-col sm:flex-row items-center gap-5">
+              <div className={`p-5 bg-slate-50 dark:bg-slate-900 rounded-2xl border flex flex-col sm:flex-row items-center gap-5 transition-all duration-300 ${
+                formData.studentPhoto 
+                  ? 'border-slate-100 dark:border-slate-850' 
+                  : 'border-dashed border-amber-300 dark:border-amber-900 bg-amber-50/10 dark:bg-amber-950/5'
+              }`}>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center cursor-pointer transition-all select-none group"
+                  className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 border-dashed bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center cursor-pointer transition-all select-none group ${
+                    formData.studentPhoto 
+                      ? 'border-emerald-500 hover:border-emerald-600' 
+                      : 'border-amber-500 animate-pulse hover:border-amber-600'
+                  }`}
                   title="Click to Upload Passport Photo"
                 >
                   {formData.studentPhoto ? (
                     <img src={formData.studentPhoto} alt="Student avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="text-center p-1.5 flex flex-col items-center justify-center text-slate-400 group-hover:text-emerald-500">
-                      <User className="w-8 h-8 opacity-75" />
+                    <div className="text-center p-1.5 flex flex-col items-center justify-center text-amber-500 dark:text-amber-400">
+                      <User className="w-8 h-8 opacity-75 animate-bounce" />
                       <span className="text-[8px] font-bold uppercase mt-1 leading-none tracking-tight">No Photo</span>
                     </div>
                   )}
                 </div>
                 
                 <div className="space-y-2 flex-grow text-center sm:text-left">
-                  <span className="text-xs font-black text-slate-750 dark:text-slate-300 block uppercase">Student Passport Photograph</span>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Upload a high-quality recent candidate photograph. If left blank, you will need to physically glue a passport photo onto the printed confirmation badge.
-                  </p>
+                  <span className="text-xs font-black text-slate-750 dark:text-slate-300 block uppercase flex items-center justify-center sm:justify-start gap-1.5">
+                    {!formData.studentPhoto && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block animate-ping" />}
+                    Student Passport Photograph
+                  </span>
+                  <div className="text-[11px] leading-relaxed">
+                    {!formData.studentPhoto ? (
+                      <div className="p-2.5 bg-amber-500/10 dark:bg-amber-500/5 rounded-xl border border-amber-500/20 text-amber-700 dark:text-amber-300 font-medium">
+                        <span className="font-extrabold text-xs block mb-1">⚠️ Photo Mandatory (फ़ोटो लगाना अनिवार्य है)</span>
+                        Kripya chhatra ki card photo upload karein. Iske liye neeche click karein:<br/>
+                        1. <strong className="font-bold underline text-emerald-600 dark:text-emerald-400">"Upload Photo"</strong> par click karke file chunein.<br/>
+                        2. <strong className="font-bold underline text-amber-600 dark:text-amber-400">"Select from Gallery"</strong> se direct photo select karein.
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Masha Allah! Photo is selected correctly. You can proceed with the rest of the form details.
+                      </p>
+                    )}
+                  </div>
                   
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                     <button
